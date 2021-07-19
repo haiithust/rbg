@@ -1,4 +1,4 @@
-package io.pixel.config
+package io.rgb.image
 
 import android.graphics.drawable.Drawable
 import okhttp3.Request

@@ -4,17 +4,15 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.widget.ImageView
-import io.pixel.config.ImageRequest
+import io.rgb.image.ImageRequest
 import io.rgb.image.ImageSize
 import io.rgb.image.size
 import io.rgb.loader.cache.CacheManager
-import io.rgb.loader.cache.memory.BitmapMemoryCache
 import io.rgb.loader.fetcher.Fetcher
 import io.rgb.utils.actualSize
 import io.rgb.utils.awaitSize
 import io.rgb.utils.toDrawable
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 

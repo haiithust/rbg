@@ -3,7 +3,7 @@ package io.rgb.loader
 import android.content.Context
 import android.net.Uri
 import android.widget.ImageView
-import io.pixel.config.ImageRequest
+import io.rgb.image.ImageRequest
 import io.rgb.loader.cache.CacheManager
 import io.rgb.loader.cache.disk.BitmapDiskCache
 import io.rgb.loader.cache.memory.BitmapMemoryCache

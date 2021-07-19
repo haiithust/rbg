@@ -1,7 +1,5 @@
 package io.rgb.image
 
-import io.pixel.config.ImageRequest
-
 /**
  * @author conghai on 14/07/2021.
  */

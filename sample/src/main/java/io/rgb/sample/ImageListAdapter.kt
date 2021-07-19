@@ -9,7 +9,6 @@ import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import io.pixel.sample.R
 import io.rgb.load
 import io.rgb.sample.ImageListAdapter.ViewHolder
 import kotlin.math.ceil

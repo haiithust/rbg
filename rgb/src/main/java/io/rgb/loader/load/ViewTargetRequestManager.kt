@@ -2,8 +2,8 @@ package io.rgb.loader.load
 
 import android.view.View
 import android.widget.ImageView
-import io.pixel.config.ImageRequest
 import io.rgb.Rgb
+import io.rgb.image.ImageRequest
 import kotlinx.coroutines.Job
 import timber.log.Timber
 
