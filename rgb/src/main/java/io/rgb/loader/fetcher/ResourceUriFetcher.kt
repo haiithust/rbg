@@ -2,14 +2,16 @@ package io.rgb.loader.fetcher
 
 import android.content.ContentResolver
 import android.content.Context
-import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.util.TypedValue
 import android.webkit.MimeTypeMap
 import androidx.appcompat.content.res.AppCompatResources
 import io.rgb.image.ImageSize
+import io.rgb.loader.decoder.DataSource
 import io.rgb.utils.getMimeTypeFromUrl
 import io.rgb.utils.nightMode
+import okio.buffer
+import okio.source
 
 internal class ResourceUriFetcher(
     private val context: Context,
@@ -22,7 +24,7 @@ internal class ResourceUriFetcher(
     override suspend fun fetch(
         data: Uri,
         size: ImageSize,
-    ): Drawable {
+    ): FetchResult {
         // Expected format: android.resource://example.package.name/12345678
         val packageName =
             data.authority?.takeIf { it.isNotBlank() } ?: throwInvalidUriException(data)
@@ -34,10 +36,14 @@ internal class ResourceUriFetcher(
         val mimeType = MimeTypeMap.getSingleton().getMimeTypeFromUrl(entryName)
 
         return if (mimeType == MIME_TYPE_XML) {
-            // getDrawableCompat can only load resources that are in the current package.
-            AppCompatResources.getDrawable(context, resId) ?: throwInvalidUriException(data)
+            val drawable = AppCompatResources.getDrawable(context, resId) ?: throwInvalidUriException(data)
+            DrawableResult(drawable, DataSource.DISK)
         } else {
-            TODO("Raw res id")
+            SourceResult(
+                source = resources.openRawResource(resId).source().buffer(),
+                mimeType = mimeType,
+                dataSource = DataSource.DISK
+            )
         }
     }
 

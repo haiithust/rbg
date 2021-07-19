@@ -7,7 +7,6 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okio.buffer
@@ -17,14 +16,12 @@ import org.json.JSONArray
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _images: MutableStateFlow<List<Image>> = MutableStateFlow(emptyList())
-
-    val assetType: MutableStateFlow<AssetType> = MutableStateFlow(AssetType.JPG)
     val screen: MutableStateFlow<Screen> = MutableStateFlow(Screen.List)
     val images: StateFlow<List<Image>> = _images
 
     init {
         viewModelScope.launch {
-            assetType.collect { _images.value = loadImages(it) }
+            _images.value = loadImages("jpgs.json")
         }
     }
 
@@ -36,21 +33,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         return false
     }
 
-    private suspend fun loadImages(assetType: AssetType): List<Image> = withContext(Dispatchers.IO) {
+    private suspend fun loadImages(fileName: String): List<Image> = withContext(Dispatchers.IO) {
         val images = mutableListOf<Image>()
-        val json = JSONArray(context.assets.open(assetType.fileName).source().buffer().readUtf8())
+        val json = JSONArray(context.assets.open(fileName).source().buffer().readUtf8())
         for (index in 0 until json.length()) {
             val image = json.getJSONObject(index)
 
-            val url: String
-            val color: Int
-            if (assetType == AssetType.JPG) {
-                url = image.getJSONObject("urls").getString("regular")
-                color = image.getString("color").toColorInt()
-            } else {
-                url = image.getString("url")
-                color = randomColor()
-            }
+            val url: String = image.getJSONObject("urls").getString("regular")
+            val color: Int = image.getString("color").toColorInt()
 
             images += Image(
                 uri = url,

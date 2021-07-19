@@ -4,21 +4,16 @@ import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.Drawable
 import android.view.View
 import android.view.ViewTreeObserver
 import android.webkit.MimeTypeMap
 import android.widget.ImageView
-import androidx.annotation.DrawableRes
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.ViewCompat
-import androidx.core.view.doOnPreDraw
-import io.pixel.android.R
-import io.pixel.config.ImageRequest
+import io.rgb.android.R
 import io.rgb.image.ImageSize
 import io.rgb.loader.load.ViewTargetRequestManager
 import kotlinx.coroutines.suspendCancellableCoroutine
-import okhttp3.Call
 import kotlin.coroutines.resume
 
 /**
@@ -89,11 +84,6 @@ private fun View.removePreDrawListenerSafe(
     } else {
         viewTreeObserver.removeOnPreDrawListener(victim)
     }
-}
-
-internal fun lazyCallFactory(initializer: () -> Call.Factory): Call.Factory {
-    val lazy: Lazy<Call.Factory> = lazy(initializer)
-    return Call.Factory { lazy.value.newCall(it) } // Intentionally not a method reference.
 }
 
 internal fun Bitmap.toDrawable(context: Context): BitmapDrawable = toDrawable(context.resources)

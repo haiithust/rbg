@@ -9,7 +9,6 @@ import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
-import io.pixel.sample.R
 import io.rgb.load
 import io.rgb.sample.ImageListAdapter.ViewHolder
 import kotlin.math.ceil
@@ -33,13 +32,16 @@ class ImageListAdapter(
         holder.image.apply {
             val item = getItem(position)
 
+            val scale = columnWidth / item.width.toDouble()
+            val height = (scale * item.height).roundToInt()
+            val width = columnWidth
             updateLayoutParams {
-                val scale = columnWidth / item.width.toDouble()
-                height = (scale * item.height).roundToInt()
-                width = columnWidth
+                this.width = width
+                this.height = height
             }
 
             load(item.uri) {
+                setImageSize(width, height)
                 setPlaceHolder(ColorDrawable(item.color))
             }
 

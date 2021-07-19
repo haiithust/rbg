@@ -1,4 +1,4 @@
-package io.pixel.config
+package io.rgb.image
 
 import android.graphics.drawable.Drawable
 import okhttp3.Request
@@ -16,9 +16,22 @@ class ImageRequest private constructor(
     val width: Int,
     val height: Int,
     val placeHolder: Drawable?,
-    val request: Request,
+    val httpRequest: Request,
+    val options: Options = Options.EMPTY
 ) {
-    class Builder(val url: String) {
+    class Options(
+        val readFromCacheEnable: Boolean,
+        val writeCacheEnable: Boolean,
+    ) {
+        companion object {
+            val EMPTY = Options(
+                readFromCacheEnable = true,
+                writeCacheEnable = true,
+            )
+        }
+    }
+
+    class Builder(private val url: String) {
         private var width = 0
         private var height = 0
         private var placeHolder: Drawable? = null
@@ -47,7 +60,7 @@ class ImageRequest private constructor(
             width = width,
             height = height,
             placeHolder = placeHolder,
-            request = request ?: Request.Builder().url(url).build()
+            httpRequest = request ?: Request.Builder().url(url).build()
         ).also {
             assert(it.url.isNotEmpty())
         }

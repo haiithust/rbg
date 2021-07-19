@@ -2,8 +2,6 @@ package io.rgb.sample
 
 import android.os.Build.VERSION.SDK_INT
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
@@ -12,9 +10,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.SimpleItemAnimator
 import androidx.recyclerview.widget.StaggeredGridLayoutManager
 import androidx.recyclerview.widget.StaggeredGridLayoutManager.VERTICAL
-import io.pixel.sample.R
 import io.rgb.load
-import io.pixel.sample.databinding.ActivityMainBinding
+import io.rgb.sample.databinding.ActivityMainBinding
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
@@ -48,7 +45,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         lifecycleScope.apply {
-            launch { viewModel.assetType.collect(::setAssetType) }
             launch { viewModel.images.collect(::setImages) }
             launch { viewModel.screen.collect(::setScreen) }
         }
@@ -76,31 +72,6 @@ class MainActivity : AppCompatActivity() {
             // Ensure we're at the top of the list when the list items are updated.
             binding.list.scrollToPosition(0)
         }
-    }
-
-    @Suppress("UNUSED_PARAMETER")
-    private fun setAssetType(assetType: AssetType) {
-        invalidateOptionsMenu()
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        val title = viewModel.assetType.value.name
-        val item = menu.add(Menu.NONE, R.id.action_toggle_asset_type, Menu.NONE, title)
-        item.setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        when (item.itemId) {
-            R.id.action_toggle_asset_type -> {
-                val values = AssetType.values()
-                val currentAssetType = viewModel.assetType.value
-                val newAssetType = values[(values.indexOf(currentAssetType) + 1) % values.count()]
-                viewModel.assetType.value = newAssetType
-            }
-            else -> return super.onOptionsItemSelected(item)
-        }
-        return true
     }
 
     override fun onBackPressed() {
