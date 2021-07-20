@@ -32,13 +32,16 @@ class ImageListAdapter(
         holder.image.apply {
             val item = getItem(position)
 
+            val scale = columnWidth / item.width.toDouble()
+            val height = (scale * item.height).roundToInt()
+            val width = columnWidth
             updateLayoutParams {
-                val scale = columnWidth / item.width.toDouble()
-                height = (scale * item.height).roundToInt()
-                width = columnWidth
+                this.width = width
+                this.height = height
             }
 
             load(item.uri) {
+                setImageSize(width, height)
                 setPlaceHolder(ColorDrawable(item.color))
             }
 

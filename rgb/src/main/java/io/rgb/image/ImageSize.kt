@@ -5,7 +5,7 @@ package io.rgb.image
  */
 class ImageSize(val width: Int, val height: Int) {
     val isUndefined: Boolean
-        get() = width == 0 || height == 0
+        get() = width <= 0 || height <= 0
 }
 
     val ImageRequest.size: ImageSize

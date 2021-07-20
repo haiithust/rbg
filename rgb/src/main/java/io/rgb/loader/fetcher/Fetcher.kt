@@ -1,6 +1,5 @@
 package io.rgb.loader.fetcher
 
-import android.graphics.drawable.Drawable
 import io.rgb.image.ImageSize
 
 interface Fetcher<T : Any> {
@@ -12,5 +11,5 @@ interface Fetcher<T : Any> {
     suspend fun fetch(
         data: T,
         size: ImageSize,
-    ): Drawable
+    ): FetchResult
 }

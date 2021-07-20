@@ -7,13 +7,9 @@ import io.rgb.image.ImageRequest
 import kotlinx.coroutines.Job
 import timber.log.Timber
 
-internal class ViewTargetRequestManager(private val root: ImageView) :
-    View.OnAttachStateChangeListener {
-
-    // Only accessed from the main thread. The request delegate for the most recently dispatched request.
-//    private var currentRequest: ViewTargetRequestDelegate? = null
-
-    // Metadata about the current request (that may have not been dispatched yet).
+internal class ViewTargetRequestManager(
+    private val root: ImageView
+) : View.OnAttachStateChangeListener {
     @Volatile
     var currentRequest: ImageRequest? = null
         private set

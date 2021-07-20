@@ -3,83 +3,105 @@ package io.rgb.loader.decoder
 import android.content.Context
 import android.graphics.*
 import android.graphics.drawable.Drawable
-import android.os.Build.VERSION.SDK_INT
 import androidx.annotation.Px
 import androidx.core.graphics.applyCanvas
 import androidx.exifinterface.media.ExifInterface
 import io.rgb.image.ImageSize
 import io.rgb.utils.toDrawable
+import kotlinx.coroutines.ensureActive
+import okhttp3.internal.closeQuietly
 import okio.Buffer
 import okio.ForwardingSource
 import okio.Source
 import okio.buffer
 import java.io.InputStream
+import kotlin.coroutines.coroutineContext
 import kotlin.math.max
 
 class BitmapFactoryDecoder(private val context: Context) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
 
-    fun decode(
+    suspend fun decode(
         source: Source,
         size: ImageSize,
     ): Drawable {
-        return BitmapFactory.Options().run {
-            inJustDecodeBounds = true
-            val buffer = source.buffer()
-            BitmapFactory.decodeStream(buffer.peek().inputStream(), null, this)
-            inJustDecodeBounds = false
+        return try {
+            coroutineContext.ensureActive()
+            BitmapFactory.Options().run {
+                inJustDecodeBounds = true
+                val safeSource = ExceptionCatchingSource(source)
+                val safeBufferedSource = safeSource.buffer()
+                BitmapFactory.decodeStream(safeBufferedSource.peek().inputStream(), null, this)
+                inJustDecodeBounds = false
 
-            // Read the image's EXIF data.
-            val isFlipped: Boolean
-            val rotationDegrees: Int
-            if (shouldReadExifData(outMimeType)) {
-                val exifInterface = ExifInterface(ExifInterfaceInputStream(buffer.peek().inputStream()))
-                isFlipped = exifInterface.isFlipped
-                rotationDegrees = exifInterface.rotationDegrees
-            } else {
-                isFlipped = false
-                rotationDegrees = 0
-            }
+                // Read the image's EXIF data.
+                val isFlipped: Boolean
+                val rotationDegrees: Int
+                if (shouldReadExifData(outMimeType)) {
+                    val exifInterface =
+                        ExifInterface(
+                            ExifInterfaceInputStream(
+                                safeBufferedSource.peek().inputStream()
+                            )
+                        )
+                    isFlipped = exifInterface.isFlipped
+                    rotationDegrees = exifInterface.rotationDegrees
+                } else {
+                    isFlipped = false
+                    rotationDegrees = 0
+                }
 
-            // srcWidth and srcHeight are the dimensions of the image after EXIF transformations (but before sampling).
-            val isSwapped = rotationDegrees == 90 || rotationDegrees == 270
-            val srcWidth = if (isSwapped) outHeight else outWidth
-            val srcHeight = if (isSwapped) outWidth else outHeight
+                // srcWidth and srcHeight are the dimensions of the image after EXIF transformations (but before sampling).
+                val isSwapped = rotationDegrees == 90 || rotationDegrees == 270
+                val srcWidth = if (isSwapped) outHeight else outWidth
+                val srcHeight = if (isSwapped) outWidth else outHeight
 
-            // Calculate inSampleSize
-            inSampleSize = calculateInSampleSize(srcWidth, srcHeight, size.width, size.height)
+                // Calculate inSampleSize
+                inSampleSize = if (!size.isUndefined)
+                    calculateInSampleSize(srcWidth, srcHeight, size.width, size.height)
+                else 1
 
-            inPreferredConfig = Bitmap.Config.RGB_565
-            val outBitmap = BitmapFactory.decodeStream(buffer.inputStream(), null, this)
-            checkNotNull(outBitmap) {
-                "Bitmap decode null from source"
-            }
-            applyExifTransformations(outBitmap, inPreferredConfig, isFlipped, rotationDegrees)
-        }.toDrawable(context)
+                inPreferredConfig = Bitmap.Config.RGB_565
+                val outBitmap = safeBufferedSource.use {
+                    if (outMimeType == null) {
+                        val bytes = it.readByteArray()
+                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, this)
+                    } else {
+                        BitmapFactory.decodeStream(it.inputStream(), null, this)
+                    }
+                }
+                checkNotNull(outBitmap) {
+                    "Bitmap decode null from source"
+                }
+                applyExifTransformations(outBitmap, inPreferredConfig, isFlipped, rotationDegrees)
+            }.toDrawable(context)
+        } finally {
+            source.closeQuietly()
+        }
     }
 
-     private fun calculateInSampleSize(
-         @Px srcWidth: Int,
-         @Px srcHeight: Int,
-         @Px dstWidth: Int,
-         @Px dstHeight: Int,
-     ): Int {
-         val widthInSampleSize = Integer.highestOneBit(srcWidth / dstWidth).coerceAtLeast(1)
-         val heightInSampleSize = Integer.highestOneBit(srcHeight / dstHeight).coerceAtLeast(1)
-         return max(widthInSampleSize, heightInSampleSize)
-     }
+    private fun calculateInSampleSize(
+        @Px srcWidth: Int,
+        @Px srcHeight: Int,
+        @Px dstWidth: Int,
+        @Px dstHeight: Int,
+    ): Int {
+        val widthInSampleSize = Integer.highestOneBit(srcWidth / dstWidth).coerceAtLeast(1)
+        val heightInSampleSize = Integer.highestOneBit(srcHeight / dstHeight).coerceAtLeast(1)
+        return max(widthInSampleSize, heightInSampleSize)
+    }
 
     private fun shouldReadExifData(mimeType: String?): Boolean {
         return mimeType != null && mimeType in SUPPORTED_EXIF_MIME_TYPES
     }
 
-    private fun applyExifTransformations(
+    private suspend fun applyExifTransformations(
         inBitmap: Bitmap,
         config: Bitmap.Config,
         isFlipped: Boolean,
         rotationDegrees: Int
     ): Bitmap {
-        // Short circuit if there are no transformations to apply.
+        coroutineContext.ensureActive()
         val isRotated = rotationDegrees > 0
         if (!isFlipped && !isRotated) {
             return inBitmap
@@ -118,13 +140,15 @@ class BitmapFactoryDecoder(private val context: Context) {
 
         // Ensure that this value is always larger than the size of the image
         // so ExifInterface won't stop reading the stream prematurely.
-        @Volatile private var availableBytes = GIGABYTE_IN_BYTES
+        @Volatile
+        private var availableBytes = GIGABYTE_IN_BYTES
 
         override fun read() = interceptBytesRead(delegate.read())
 
         override fun read(b: ByteArray) = interceptBytesRead(delegate.read(b))
 
-        override fun read(b: ByteArray, off: Int, len: Int) = interceptBytesRead(delegate.read(b, off, len))
+        override fun read(b: ByteArray, off: Int, len: Int) =
+            interceptBytesRead(delegate.read(b, off, len))
 
         override fun skip(n: Long) = delegate.skip(n)
 
@@ -138,6 +162,21 @@ class BitmapFactoryDecoder(private val context: Context) {
         }
     }
 
+    private class ExceptionCatchingSource(delegate: Source) : ForwardingSource(delegate) {
+
+        var exception: Exception? = null
+            private set
+
+        override fun read(sink: Buffer, byteCount: Long): Long {
+            try {
+                return super.read(sink, byteCount)
+            } catch (e: Exception) {
+                exception = e
+                throw e
+            }
+        }
+    }
+
     companion object {
         private const val MIME_TYPE_JPEG = "image/jpeg"
         private const val MIME_TYPE_WEBP = "image/webp"
@@ -148,6 +187,7 @@ class BitmapFactoryDecoder(private val context: Context) {
         // NOTE: We don't support PNG EXIF data as it's very rarely used and requires buffering
         // the entire file into memory. All of the supported formats short circuit when the EXIF
         // chunk is found (often near the top of the file).
-        private val SUPPORTED_EXIF_MIME_TYPES = arrayOf(MIME_TYPE_JPEG, MIME_TYPE_WEBP, MIME_TYPE_HEIC, MIME_TYPE_HEIF)
+        private val SUPPORTED_EXIF_MIME_TYPES =
+            arrayOf(MIME_TYPE_JPEG, MIME_TYPE_WEBP, MIME_TYPE_HEIC, MIME_TYPE_HEIF)
     }
 }

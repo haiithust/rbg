@@ -4,11 +4,13 @@ import android.content.Context
 import android.net.Uri
 import android.widget.ImageView
 import io.rgb.image.ImageRequest
-import io.rgb.loader.cache.CacheManager
+import io.rgb.loader.cache.BitmapCacheManager
 import io.rgb.loader.cache.disk.BitmapDiskCache
 import io.rgb.loader.cache.memory.BitmapMemoryCache
+import io.rgb.loader.decoder.BitmapFactoryDecoder
 import io.rgb.loader.fetcher.Fetcher
 import io.rgb.loader.fetcher.HttpFetcher
+import io.rgb.loader.fetcher.ResourceUriFetcher
 import io.rgb.loader.load.ImageLoadExecution
 import io.rgb.loader.mapper.RequestDataMapper
 import io.rgb.loader.mapper.ResourceIntMapper
@@ -30,14 +32,16 @@ class ImageLoaderManager(
         ResourceIntMapper(applicationContext),
         StringMapper()
     )
-    private val fetcher = listOf(HttpFetcher(applicationContext))
+    private val fetcher = listOf(
+        HttpFetcher(),
+        ResourceUriFetcher(applicationContext)
+    )
     private val scope = CoroutineScope(Dispatchers.Main.immediate)
-    private val cacheManager = CacheManager(
-        listOf(
+    private val cacheManager = BitmapCacheManager(
             BitmapMemoryCache(),
             BitmapDiskCache(applicationContext)
-        ),
     )
+    private val decoder = BitmapFactoryDecoder(applicationContext)
 
     fun enqueue(
         target: ImageView,
@@ -51,8 +55,9 @@ class ImageLoaderManager(
                 request = request,
                 fetcher = fetcher,
                 uri = mappedData,
-                cacheManager = cacheManager,
-                dispatcher = dispatcher
+                bitmapCacheManager = cacheManager,
+                dispatcher = dispatcher,
+                decoder = decoder
             ).invoke()
         }
         target.requestManager.setCurrentRequestJob(request, job)

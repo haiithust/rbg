@@ -1,9 +1,7 @@
 package io.rgb.loader.cache.memory
 
 import android.graphics.Bitmap
-import android.os.Build
 import android.util.LruCache
-import io.rgb.config.PixelLog
 import io.rgb.loader.cache.BitmapDatasource
 import io.rgb.loader.cache.Priority
 import timber.log.Timber
