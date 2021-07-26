@@ -1,22 +1,16 @@
 package io.rgb.image
 
 import android.graphics.drawable.Drawable
-import okhttp3.Request
 
 /**
  * PixelOptions allow to customize each load.
- * @author Mobin Munir
+ * @author conghai on 16/07/2021.
  */
-enum class ImageFormat {
-    PNG
-}
-
 class ImageRequest private constructor(
-    val url: String,
+    val data: Any,
     val width: Int,
     val height: Int,
     val placeHolder: Drawable?,
-    val httpRequest: Request,
     val options: Options = Options.EMPTY
 ) {
     class Options(
@@ -31,12 +25,10 @@ class ImageRequest private constructor(
         }
     }
 
-    class Builder(private val url: String) {
+    class Builder(private val data: Any) {
         private var width = 0
         private var height = 0
         private var placeHolder: Drawable? = null
-        private var imageFormat = ImageFormat.PNG
-        private var request: Request? = null
 
         fun setPlaceHolder(placeHolderResource: Drawable?) {
             this.placeHolder = placeHolderResource
@@ -47,22 +39,11 @@ class ImageRequest private constructor(
             this.height = height
         }
 
-        fun setImageFormat(imageFormat: ImageFormat) {
-            this.imageFormat = imageFormat
-        }
-
-        fun setRequest(request: Request) {
-            this.request = request
-        }
-
         fun build() = ImageRequest(
-            url = url,
+            data = data,
             width = width,
             height = height,
             placeHolder = placeHolder,
-            httpRequest = request ?: Request.Builder().url(url).build()
-        ).also {
-            assert(it.url.isNotEmpty())
-        }
+        )
     }
 }

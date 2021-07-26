@@ -5,11 +5,11 @@ import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.view.View
-import android.view.ViewTreeObserver
 import android.webkit.MimeTypeMap
 import android.widget.ImageView
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.ViewCompat
+import androidx.core.view.doOnPreDraw
 import io.rgb.android.R
 import io.rgb.image.ImageSize
 import io.rgb.loader.load.ViewTargetRequestManager
@@ -49,40 +49,11 @@ internal suspend fun View.awaitSize(): ImageSize {
 
     // Slow path: wait for the view to be measured.
     return suspendCancellableCoroutine { continuation ->
-        val viewTreeObserver = viewTreeObserver
-
-        val preDrawListener = object : ViewTreeObserver.OnPreDrawListener {
-            private var isResumed = false
-
-            override fun onPreDraw(): Boolean {
-                actualSize.takeIf { it.isUndefined.not() }?.let {
-                    removePreDrawListenerSafe(viewTreeObserver, this)
-
-                    if (!isResumed) {
-                        isResumed = true
-                        continuation.resume(it)
-                    }
-                }
-                return true
-            }
+        val listener = doOnPreDraw {
+            continuation.resume(actualSize)
         }
 
-        viewTreeObserver.addOnPreDrawListener(preDrawListener)
-
-        continuation.invokeOnCancellation {
-            removePreDrawListenerSafe(viewTreeObserver, preDrawListener)
-        }
-    }
-}
-
-private fun View.removePreDrawListenerSafe(
-    previous: ViewTreeObserver,
-    victim: ViewTreeObserver.OnPreDrawListener
-) {
-    if (previous.isAlive) {
-        previous.removeOnPreDrawListener(victim)
-    } else {
-        viewTreeObserver.removeOnPreDrawListener(victim)
+        continuation.invokeOnCancellation { listener.removeListener() }
     }
 }
 

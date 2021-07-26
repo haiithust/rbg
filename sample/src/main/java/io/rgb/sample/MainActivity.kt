@@ -65,9 +65,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setImages(images: List<Image>) {
-//        if (images.isNotEmpty()) {
-//            viewModel.screen.value = Screen.Detail(images[1])
-//        }
         listAdapter.submitList(images) {
             // Ensure we're at the top of the list when the list items are updated.
             binding.list.scrollToPosition(0)

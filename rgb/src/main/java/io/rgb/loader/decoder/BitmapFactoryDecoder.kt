@@ -3,7 +3,13 @@ package io.rgb.loader.decoder
 import android.content.Context
 import android.graphics.*
 import android.graphics.drawable.Drawable
+import android.os.Build
+import android.util.DisplayMetrics
+import android.view.WindowInsets
+import android.view.WindowManager
+import android.view.WindowMetrics
 import androidx.annotation.Px
+import androidx.core.content.getSystemService
 import androidx.core.graphics.applyCanvas
 import androidx.exifinterface.media.ExifInterface
 import io.rgb.image.ImageSize
@@ -16,10 +22,28 @@ import okio.Source
 import okio.buffer
 import java.io.InputStream
 import kotlin.coroutines.coroutineContext
-import kotlin.math.max
+
 
 class BitmapFactoryDecoder(private val context: Context) {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    private val screenWidth: Int
+    private val screenHeight: Int
+
+    init {
+        val windowManager = context.getSystemService<WindowManager>()!!
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val windowMetrics: WindowMetrics = windowManager.currentWindowMetrics
+            val insets = windowMetrics.windowInsets
+                .getInsetsIgnoringVisibility(WindowInsets.Type.systemBars())
+            screenWidth = windowMetrics.bounds.width() - insets.left - insets.right
+            screenHeight = windowMetrics.bounds.height() - insets.bottom - insets.top
+        } else {
+            val metrics = DisplayMetrics()
+            windowManager.defaultDisplay.getMetrics(metrics)
+            screenWidth = metrics.widthPixels
+            screenHeight = metrics.heightPixels
+        }
+    }
 
     suspend fun decode(
         source: Source,
@@ -57,9 +81,11 @@ class BitmapFactoryDecoder(private val context: Context) {
                 val srcHeight = if (isSwapped) outWidth else outHeight
 
                 // Calculate inSampleSize
-                inSampleSize = if (!size.isUndefined)
+                inSampleSize = if (!size.isUndefined) {
                     calculateInSampleSize(srcWidth, srcHeight, size.width, size.height)
-                else 1
+                } else {
+                    calculateInSampleSize(srcWidth, srcHeight, screenWidth, screenHeight)
+                }
 
                 inPreferredConfig = Bitmap.Config.RGB_565
                 val outBitmap = safeBufferedSource.use {
@@ -83,12 +109,22 @@ class BitmapFactoryDecoder(private val context: Context) {
     private fun calculateInSampleSize(
         @Px srcWidth: Int,
         @Px srcHeight: Int,
-        @Px dstWidth: Int,
-        @Px dstHeight: Int,
+        @Px reqWidth: Int,
+        @Px reqHeight: Int,
     ): Int {
-        val widthInSampleSize = Integer.highestOneBit(srcWidth / dstWidth).coerceAtLeast(1)
-        val heightInSampleSize = Integer.highestOneBit(srcHeight / dstHeight).coerceAtLeast(1)
-        return max(widthInSampleSize, heightInSampleSize)
+        // Raw height and width of image
+        var inSampleSize = 1
+        if (srcHeight > reqHeight || srcWidth > reqWidth) {
+            val halfHeight: Int = srcHeight / 2
+            val halfWidth: Int = srcWidth / 2
+            // Calculate the largest inSampleSize value that is a power of 2 and keeps both
+            // height and width larger than the requested height and width.
+            while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
+                inSampleSize *= 2
+            }
+        }
+
+        return inSampleSize
     }
 
     private fun shouldReadExifData(mimeType: String?): Boolean {

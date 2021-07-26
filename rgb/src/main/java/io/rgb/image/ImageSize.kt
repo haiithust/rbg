@@ -6,7 +6,9 @@ package io.rgb.image
 class ImageSize(val width: Int, val height: Int) {
     val isUndefined: Boolean
         get() = width <= 0 || height <= 0
+
+    override fun toString(): String = "$width - $height"
 }
 
-    val ImageRequest.size: ImageSize
+val ImageRequest.size: ImageSize
     get() = ImageSize(width, height)

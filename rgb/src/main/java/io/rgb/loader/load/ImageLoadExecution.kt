@@ -32,8 +32,6 @@ internal class ImageLoadExecution(
     private val dispatcher: CoroutineDispatcher,
     private val decoder: BitmapFactoryDecoder
 ) {
-    private val id = request.url
-
     private fun setPlaceholder(drawable: Drawable?) = target.setImageDrawable(drawable)
 
     private suspend fun setImageSize(): ImageSize {
@@ -43,10 +41,10 @@ internal class ImageLoadExecution(
     }
 
     suspend operator fun invoke() {
-        Timber.d("Start load image view ${target.hashCode()} - $id")
         try {
             setPlaceholder(request.placeHolder)
             val size = setImageSize()
+            Timber.d("Start load image view with size $size")
             val drawable = withContext(dispatcher) {
                 val key = buildKey(fetcher.key(uri).orEmpty(), size)
                 Timber.d("Load image $uri with $key")
@@ -67,7 +65,8 @@ internal class ImageLoadExecution(
             }
             target.setImageDrawable(drawable)
         } catch (e: Exception) {
-            Timber.d("${request.url} - ${e.message}")
+            //TODO(Load Error)
+            Timber.d("${request.data} - ${e.message}")
         } finally {
 
         }
