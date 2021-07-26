@@ -9,6 +9,7 @@ import io.rgb.loader.cache.disk.BitmapDiskCache
 import io.rgb.loader.cache.memory.BitmapMemoryCache
 import io.rgb.loader.decoder.BitmapFactoryDecoder
 import io.rgb.loader.fetcher.Fetcher
+import io.rgb.loader.fetcher.FileFetcher
 import io.rgb.loader.fetcher.HttpFetcher
 import io.rgb.loader.fetcher.ResourceUriFetcher
 import io.rgb.loader.load.ImageLoadExecution
@@ -30,10 +31,11 @@ class ImageLoaderManager(
 ) {
     private val dataMappers = listOf(
         ResourceIntMapper(applicationContext),
-        StringMapper()
+        StringMapper(),
     )
     private val fetcher = listOf(
-        HttpFetcher(),
+        HttpFetcher,
+        FileFetcher,
         ResourceUriFetcher(applicationContext)
     )
     private val scope = CoroutineScope(Dispatchers.Main.immediate)
@@ -47,7 +49,7 @@ class ImageLoaderManager(
         target: ImageView,
         request: ImageRequest
     ): Job {
-        val mappedData = mappedData(request.url)
+        val mappedData = if (request.data is Uri) request.data else mappedData(request.data)
         val fetcher = resolveFetcher(mappedData)
         val job = scope.launch {
             ImageLoadExecution(
@@ -74,12 +76,13 @@ class ImageLoaderManager(
 
     @Suppress("UNCHECKED_CAST")
     private fun mappedData(data: Any): Uri {
-        val mapper = dataMappers.find {
-            it.acceptType.isAssignableFrom(data::class.java) && (it as RequestDataMapper<Any>).handles(
-                data
-            )
-        } ?: throw IllegalArgumentException("$data not supported")
-        return (mapper as RequestDataMapper<Any>).map(data)
+        dataMappers.forEach {
+            if (it.acceptType.isAssignableFrom(data::class.java)
+                && (it as RequestDataMapper<Any>).handles(data)) {
+                return it.map(data)
+            }
+        }
+        throw IllegalArgumentException("Can not handle $data")
     }
 
     @Suppress("UNCHECKED_CAST")

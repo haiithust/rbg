@@ -9,7 +9,7 @@ import androidx.core.net.toUri
 internal class ResourceIntMapper(
     private val context: Context,
 ) : RequestDataMapper<Int> {
-    override val acceptType: Class<Int> = Int::class.java
+    override val acceptType: Class<Int> = Int::class.javaObjectType
 
     override fun handles(@DrawableRes data: Int) = runCatching {
         context.resources.getResourceEntryName(data) != null

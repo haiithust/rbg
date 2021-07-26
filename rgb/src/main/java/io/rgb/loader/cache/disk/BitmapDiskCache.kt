@@ -4,13 +4,12 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Environment
-import com.jakewharton.disklrucache.DiskLruCache
 import io.rgb.loader.cache.BitmapDatasource
 import io.rgb.loader.cache.Priority
+import io.rgb.loader.cache.disk.lib.DiskLruCache
 import java.io.File
 import java.math.BigInteger
 import java.security.MessageDigest
-
 
 /**
  * @author conghai on 18/07/2021.
@@ -21,14 +20,14 @@ class BitmapDiskCache(
 ) : BitmapDatasource {
     private val cache: DiskLruCache by lazy {
         DiskLruCache.open(
-            getDiskCacheDir(context), 1, 1, DISK_CACHE_SIZE
+            getDiskCacheDir(context), 1, DISK_CACHE_SIZE
         )
     }
 
     override fun get(key: String): Bitmap? {
         return runCatching {
             val snapshot = cache[hash(key)] ?: return@runCatching null
-            return@runCatching BitmapFactory.decodeStream(snapshot.getInputStream(0))
+            return@runCatching BitmapFactory.decodeStream(snapshot.inputStream)
         }.getOrNull()
     }
 
@@ -36,7 +35,7 @@ class BitmapDiskCache(
         synchronized(cache) {
             val editor = cache.edit(hash(key)) ?: return
             try {
-                val outStream = editor.newOutputStream(0)
+                val outStream = editor.newOutputStream()
                 if (bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outStream)) {
                     editor.commit()
                 } else editor.abort()
@@ -75,7 +74,7 @@ class BitmapDiskCache(
     }
 
     companion object {
-        private const val DISK_CACHE_SIZE = 1024L * 1024L * 100 // 100MB
+        private const val DISK_CACHE_SIZE = 1024L * 1024L * 10 // 10MB
         private const val DISK_CACHE_SUB_DIR = "thumbnails"
     }
 }

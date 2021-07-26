@@ -25,7 +25,6 @@ internal class ResourceUriFetcher(
         data: Uri,
         size: ImageSize,
     ): FetchResult {
-        // Expected format: android.resource://example.package.name/12345678
         val packageName =
             data.authority?.takeIf { it.isNotBlank() } ?: throwInvalidUriException(data)
         val resId = data.pathSegments.lastOrNull()?.toIntOrNull() ?: throwInvalidUriException(data)

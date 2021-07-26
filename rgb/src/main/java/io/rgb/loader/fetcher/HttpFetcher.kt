@@ -8,6 +8,7 @@ import io.rgb.loader.decoder.DataSource
 import io.rgb.utils.getMimeTypeFromUrl
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.MainCoroutineDispatcher
+import kotlinx.coroutines.ensureActive
 import okhttp3.*
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import timber.log.Timber
@@ -16,7 +17,7 @@ import kotlin.coroutines.coroutineContext
 /**
  * @author conghai on 16/07/2021.
  */
-class HttpFetcher : Fetcher<Uri> {
+object HttpFetcher : Fetcher<Uri> {
     private val okHttpClient = OkHttpClient()
 
     override fun handles(data: Uri): Boolean = data.scheme == "http" || data.scheme == "https"
@@ -25,6 +26,7 @@ class HttpFetcher : Fetcher<Uri> {
 
     @OptIn(ExperimentalStdlibApi::class)
     override suspend fun fetch(data: Uri, size: ImageSize): FetchResult {
+        coroutineContext.ensureActive()
         Timber.d("Starting Fetch $data")
         val url = data.toString().toHttpUrl()
         val request = Request.Builder().url(url).build()
@@ -52,9 +54,7 @@ class HttpFetcher : Fetcher<Uri> {
         return rawContentType?.substringBefore(';')
     }
 
-    companion object {
-        private const val MIME_TYPE_TEXT_PLAIN = "text/plain"
-    }
+    private const val MIME_TYPE_TEXT_PLAIN = "text/plain"
 }
 
 class HttpException(response: Response) :
