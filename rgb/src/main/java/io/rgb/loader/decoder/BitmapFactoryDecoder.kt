@@ -12,6 +12,7 @@ import androidx.annotation.Px
 import androidx.core.content.getSystemService
 import androidx.core.graphics.applyCanvas
 import androidx.exifinterface.media.ExifInterface
+import io.rgb.image.ImageRequest
 import io.rgb.image.ImageSize
 import io.rgb.utils.toDrawable
 import kotlinx.coroutines.ensureActive
@@ -24,7 +25,7 @@ import java.io.InputStream
 import kotlin.coroutines.coroutineContext
 
 
-class BitmapFactoryDecoder(private val context: Context) {
+class BitmapFactoryDecoder(private val context: Context) : Decoder {
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val screenWidth: Int
     private val screenHeight: Int
@@ -45,9 +46,10 @@ class BitmapFactoryDecoder(private val context: Context) {
         }
     }
 
-    suspend fun decode(
+    override suspend fun decode(
         source: Source,
         size: ImageSize,
+        options: ImageRequest.Options
     ): Drawable {
         return try {
             coroutineContext.ensureActive()

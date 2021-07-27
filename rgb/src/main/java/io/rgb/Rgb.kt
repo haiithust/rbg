@@ -6,7 +6,7 @@ import android.widget.ImageView
 import androidx.annotation.DrawableRes
 import io.rgb.android.BuildConfig
 import io.rgb.image.ImageRequest
-import io.rgb.loader.ImageLoaderManager
+import io.rgb.loader.ImageLoaderImpl
 import kotlinx.coroutines.Job
 import timber.log.Timber
 import java.io.File
@@ -28,14 +28,23 @@ object Rgb {
         val request = ImageRequest.Builder(data)
             .apply(builder)
             .build()
-        return ImageLoaderManager.getInstance(target.context).enqueue(target, request)
+        return ImageLoaderImpl.getInstance(target.context).enqueue(target, request)
     }
 
     fun load(target: ImageView, request: ImageRequest): Job =
-        ImageLoaderManager.getInstance(target.context).enqueue(target, request)
+        ImageLoaderImpl.getInstance(target.context).enqueue(target, request)
 
-    fun release(context: Context) {
-        ImageLoaderManager.getInstance(context).release()
+    fun getLoader(context: Context) : ImageLoader {
+        return ImageLoaderImpl.getInstance(context)
+    }
+
+    fun cancel(context: Context) {
+        ImageLoaderImpl.getInstance(context).cancel()
+    }
+
+    fun clearMemory(context: Context) {
+        ImageLoaderImpl.getInstance(context).clearMemory()
+        ImageLoaderImpl.INSTANCE = null
     }
 }
 

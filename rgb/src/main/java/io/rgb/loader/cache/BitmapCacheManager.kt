@@ -26,4 +26,9 @@ internal class BitmapCacheManager(
         memoryCache[key] = value
         diskCache[key] = value
     }
+
+    fun clearMemory() {
+        memoryCache.clearMemory()
+        diskCache.clearMemory()
+    }
 }

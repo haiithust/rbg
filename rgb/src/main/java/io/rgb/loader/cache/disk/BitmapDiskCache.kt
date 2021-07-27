@@ -5,7 +5,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Environment
 import io.rgb.loader.cache.BitmapDatasource
-import io.rgb.loader.cache.Priority
 import io.rgb.loader.cache.disk.lib.DiskLruCache
 import java.io.File
 import java.math.BigInteger
@@ -16,7 +15,6 @@ import java.security.MessageDigest
  */
 class BitmapDiskCache(
     private val context: Context,
-    override val priority: Priority = Priority.LOW
 ) : BitmapDatasource {
     private val cache: DiskLruCache by lazy {
         DiskLruCache.open(
@@ -51,7 +49,7 @@ class BitmapDiskCache(
         cache.remove(hash(key))
     }
 
-    override fun clear() {
+    override fun clearMemory() {
         cache.delete()
     }
 

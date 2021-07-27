@@ -1,5 +1,6 @@
 package io.rgb.loader.load
 
+import android.content.Context
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.net.Uri
@@ -8,8 +9,8 @@ import io.rgb.image.ImageRequest
 import io.rgb.image.ImageSize
 import io.rgb.image.size
 import io.rgb.loader.cache.BitmapCacheManager
-import io.rgb.loader.decoder.BitmapFactoryDecoder
 import io.rgb.loader.decoder.DataSource
+import io.rgb.loader.decoder.Decoder
 import io.rgb.loader.fetcher.DrawableResult
 import io.rgb.loader.fetcher.FetchResult
 import io.rgb.loader.fetcher.Fetcher
@@ -17,30 +18,33 @@ import io.rgb.loader.fetcher.SourceResult
 import io.rgb.utils.actualSize
 import io.rgb.utils.awaitSize
 import io.rgb.utils.toDrawable
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 import kotlin.coroutines.coroutineContext
 
-internal class ImageLoadExecution(
-    private val target: ImageView,
+internal class ImageLoadTask(
+    private val context: Context,
+    private val target: ImageView? = null,
     private val request: ImageRequest,
     private val fetcher: Fetcher<Uri>,
     private val uri: Uri,
     private val bitmapCacheManager: BitmapCacheManager,
     private val dispatcher: CoroutineDispatcher,
-    private val decoder: BitmapFactoryDecoder
+    private val decoder: Decoder
 ) {
-    private fun setPlaceholder(drawable: Drawable?) = target.setImageDrawable(drawable)
+    private fun setPlaceholder(drawable: Drawable?) = target?.setImageDrawable(drawable)
 
     private suspend fun setImageSize(): ImageSize {
         request.size.takeIf { it.isUndefined.not() }?.let { return it }
+        if (target == null) return ImageSize.UNDEFINED
         target.actualSize.takeIf { it.isUndefined.not() }?.let { return it }
         return target.awaitSize()
     }
 
-    suspend operator fun invoke() {
+    suspend fun execute(): Drawable? {
         try {
             setPlaceholder(request.placeHolder)
             val size = setImageSize()
@@ -50,12 +54,12 @@ internal class ImageLoadExecution(
                 Timber.d("Load image $uri with $key")
                 bitmapCacheManager.getMemoryCache(key)?.let {
                     Timber.d("Return Bitmap from Memory Cache")
-                    return@withContext it.toDrawable(target.context)
+                    return@withContext it.toDrawable(context)
                 }
                 if (request.options.readFromCacheEnable) {
                     bitmapCacheManager.getDiskCache(key)?.let {
                         Timber.d("Return Bitmap from Disk Cache")
-                        return@withContext it.toDrawable(target.context)
+                        return@withContext it.toDrawable(context)
                     }
                 }
                 val result = fetcher.fetch(uri, size)
@@ -63,12 +67,14 @@ internal class ImageLoadExecution(
                 writeToCache(request.options, drawable, result.dataSource, key)
                 return@withContext drawable
             }
-            target.setImageDrawable(drawable)
+            target?.setImageDrawable(drawable)
+            return drawable
         } catch (e: Exception) {
-            //TODO(Load Error)
-            Timber.d("${request.data} - ${e.message}")
-        } finally {
-
+            if (e !is CancellationException) {
+                //TODO(Load Error)
+            }
+            Timber.e("${request.data} - ${e.message}")
+            return null
         }
     }
 
@@ -79,7 +85,7 @@ internal class ImageLoadExecution(
     private suspend fun decode(result: FetchResult, size: ImageSize): Drawable {
         return when (result) {
             is DrawableResult -> result.drawable
-            is SourceResult -> decoder.decode(result.source, size)
+            is SourceResult -> decoder.decode(result.source, size, request.options)
         }
     }
 

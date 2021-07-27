@@ -1,4 +1,4 @@
-package io.rgb.loader.load
+package io.rgb.loader
 
 import android.view.View
 import android.widget.ImageView

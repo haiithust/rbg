@@ -3,13 +3,10 @@ package io.rgb.loader.cache.memory
 import android.graphics.Bitmap
 import android.util.LruCache
 import io.rgb.loader.cache.BitmapDatasource
-import io.rgb.loader.cache.Priority
 import timber.log.Timber
 
-
-internal class BitmapMemoryCache(
-    override val priority: Priority = Priority.HIGH
-) : BitmapDatasource {
+//https://developer.android.com/topic/performance/graphics/cache-bitmap
+internal class BitmapMemoryCache : BitmapDatasource {
     /*   Get max available VM memory, exceeding this amount will throw an
        OutOfMemory exception. Stored in kilobytes as LruCache takes an
       int in its constructor.*/
@@ -52,5 +49,5 @@ internal class BitmapMemoryCache(
         cache.remove(key)
     }
 
-    override fun clear() = cache.evictAll()
+    override fun clearMemory() = cache.evictAll()
 }

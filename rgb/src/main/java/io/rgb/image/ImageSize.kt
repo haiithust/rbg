@@ -8,6 +8,10 @@ class ImageSize(val width: Int, val height: Int) {
         get() = width <= 0 || height <= 0
 
     override fun toString(): String = "$width - $height"
+
+    companion object {
+        val UNDEFINED = ImageSize(0, 0)
+    }
 }
 
 val ImageRequest.size: ImageSize

@@ -12,7 +12,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.doOnPreDraw
 import io.rgb.android.R
 import io.rgb.image.ImageSize
-import io.rgb.loader.load.ViewTargetRequestManager
+import io.rgb.loader.ViewTargetRequestManager
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
